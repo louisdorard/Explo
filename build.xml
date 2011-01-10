@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<project name="Explo" default="main" basedir=".">
+	
+	<description>
+        Build file for the Explo project.
+    </description>
+	<!-- set global properties for this build -->
+	<property name="lib" location="lib"/>
+	<property name="src" location="eval"/>
+	<property name="algo" location="algo"/>
+	<property name="build" location="build"/>
+	<property name="buildEval" location="${build}/eval"/>
+	<property name="buildOthers" location="${build}/others"/>
+	<property name="buildAlgo" location="${build}/algo"/>
+	
+	<target name="init">
+		<!-- Create the time stamp -->
+		<tstamp/>
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${build}"/>
+		<mkdir dir="${buildEval}"/>
+		<mkdir dir="${buildOthers}"/>
+		<mkdir dir="${buildAlgo}"/>
+	</target>
+	
+	<target name="algo" depends="init" description="compile the algorithm">
+		<javac srcdir="${src}/explo/model" destdir="${buildOthers}"/>
+		<javac srcdir="${src}/explo/agent" destdir="${buildOthers}"/>
+		<javac srcdir="${src}/explo/util" destdir="${buildOthers}"/>
+		<!-- Compile the java code from ${algo} into ${buildAlgo} -->
+		<javac srcdir="${algo}" destdir="${buildAlgo}">
+			<!-- Add explo.model agent and util to the classpath -->
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement location="${buildOthers}"/>
+			</classpath>
+		</javac>
+		<!-- Put everything in ${buildAlgo} into the ClickPredictor.jar file -->
+		<jar jarfile="${lib}/ClickPredictor.jar" basedir="${buildAlgo}"/>
+	</target>
+	
+	<target name="eval" depends="init" description="compile the evaluation code">
+		<!-- Compile the java code from ${src} into ${buildEval} -->
+		<javac srcdir="${src}" destdir="${buildEval}">
+			<!-- Add all JAR files located in lib directory (including ClickPredictor.jar) to classpath -->
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+		<copy file="${src}/log4j.properties" todir="${buildEval}"/>
+	</target>
+	
+	<target name="jar" depends="eval">
+		<mkdir dir="${build}/jar"/>
+		<jar destfile="${build}/jar/${ant.project.name}.jar" basedir="${buildEval}">
+			<zipfileset includes="**/*.class" src="${lib}/log4j-1.2.16.jar"/>
+			<zipfileset includes="**/*.class" src="${lib}/ClickPredictor.jar"/>
+			<manifest>
+				<attribute name="Main-Class" value="explo.control.Run"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="test">
+		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
+			<arg value="data.csv" />
+			<arg value="5" />
+		</java>
+	</target>
+	
+	<target name="run">
+		<java jar="${build}/jar/${ant.project.name}.jar" fork="true"/>
+	</target>
+	
+	<target name="web" description="Prepare the folder for the web app">
+		<!-- TODO -->
+	</target>
+	
+	<target name="clean" description="clean up">
+		<!-- Delete the build directories -->
+		<delete dir="${build}"/>
+	</target>
+	
+	<target name="main" depends="eval,jar,test"/>
+	<target name="all" depends="algo,main"/>
+	
+</project>
