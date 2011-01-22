@@ -12,12 +12,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * @author louis
+ * @author Louis Dorard, University College London
  *
  */
 public class RunTester {
 
-	public static String dataPath = "data.csv";
+	public static String dataPath = "data";
 	
 	@Before
 	public void setUp() throws Exception {

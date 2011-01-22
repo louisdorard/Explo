@@ -17,7 +17,7 @@ import explo.model.Batch;
 
 public class EnvironmentTester {
 	
-	public static String dataPath = "data.csv";
+	public static String dataPath = "data"; // data files are in the current directory
 	public static Environment e;
 	public static ClickPredictor cp;
 	
@@ -28,17 +28,19 @@ public class EnvironmentTester {
 	public void setUp() throws Exception {
 		e = new Environment(dataPath);
 		cp = new ClickPredictor_Impl();
-		assertTrue(e.size()>0);
 	}
 	
 	@Test
 	public void testGetNewBatch() throws NumberFormatException, IOException, ParseException {
 		System.out.println("### \t testGetNewBatch");
 		Batch b;
-		while (e.hasBatchesLeft()) {
+		int c = 0;
+		while (e.hasNext()) {
 			b = e.getNewBatch();
-			System.out.println(b);
+			c += b.size();
+			// System.out.println(b);
 		}
+		assertTrue(c==71); // should have read 71 lines of data: 69 lines in data.0.csv, minus the first line, plus 4 lines in data.1.csv, minus the first line 
 	}
 	
 	@Test
@@ -47,7 +49,7 @@ public class EnvironmentTester {
 		Batch b;
 		int i;
 		Arm a;
-		while (e.hasBatchesLeft()) {
+		while (e.hasNext()) {
 			b = e.getNewBatch();
 			i = cp.choose(b);
 			a = b.getArm(i);

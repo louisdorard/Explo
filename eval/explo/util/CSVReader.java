@@ -25,6 +25,8 @@ import java.util.List;
 
 /**
 * A very simple CSV reader released under a commercial-friendly license.
+* Modified by Louis Dorard:
+* - added a hasNext() method
 * 
 * @author Glen Smith
 * 
@@ -215,6 +217,26 @@ final public class CSVReader implements Closeable {
        }
        return allElements;
 
+   }
+   
+   /**
+    * @return boolean that indicates whether there are more lines to be read or not
+ 	* @throws IOException
+ 	*/
+   public boolean hasNext() throws IOException {
+	   // Motivation: hasNext is the variable used by Glen Smith, which is set to false AFTER having seen that the line read by br was null.
+	   // It can be true and readNext can return null...
+	   //
+	   // We want to be able to see beforehand if the next line is going to be null or not, in which case we return false (i.e. no next line).
+	   // Thus, if hasNext() returns true, we know readNext won't return null.
+	   boolean b = hasNext;
+	   if (b) {
+		   br.mark(1500); // we set a mark so that we can "explore" what's next and come back to this mark afterwards; the readAheadLimit is set to 1500 characters, i.e. a bit more than what a line should contain
+		   if (getNextLine()==null)
+			   b = false;
+		   br.reset(); // thus, br's position at the end of this method is the same as at the beginning
+	   }
+	   return b;
    }
 
    /**

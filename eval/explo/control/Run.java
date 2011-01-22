@@ -42,17 +42,19 @@ final public class Run {
 	public static void main(String[] args) throws NumberFormatException, IOException, ParseException, ClassNotFoundException {
 		
 		// Initialisation
-		if (args.length>1)
+		if (args.length>1 && args[1]!=null) {
 			testMode = true;
+			log.info("Test mode");
+		}
 		else
 			testMode = false;
 		if (args.length>0)
 			e = new Environment(args[0]);
 		else
-			e = new Environment("data.csv");
-		cp = initAlgo();
+			e = new Environment("data");
 		if (testMode)
 			cpPath = "test/" + cpPath;
+		cp = initAlgo();
 		
 		if (testMode)
 			iterate(Integer.parseInt(args[1]));
@@ -66,7 +68,7 @@ final public class Run {
 		
 	}
 	
-	private static void iterate() {
+	private static void iterate() throws IOException, ParseException {
 		iterate(-1);
 	}
 	
@@ -75,8 +77,10 @@ final public class Run {
 	 * An iteration consists of getting a batch from the environment, using cp in limited time to choose an arm to play in this batch, playing the selected arm, receiving a reward, and learning from this observation. 
 	 * If nit is <=0, we run as many iterations as allowed by the data set.
 	 * @param nit
+	 * @throws ParseException 
+	 * @throws IOException 
 	 */
-	private static void iterate(int nit) {
+	private static void iterate(int nit) throws IOException, ParseException {
 		
 		Batch b; // batch for current iteration
 		int i; // index of chosen arm in b
@@ -84,7 +88,7 @@ final public class Run {
 		Integer reward; // reward for a
 		int c = 0; // current batch number
 		
-		while (e.hasBatchesLeft()) {
+		while (e.hasNext()) {
 			
 			/*
 			 * New iteration
@@ -159,10 +163,13 @@ final public class Run {
 		// if cpPath file exists, load it; otherwise, load new Click Predictor
 		File f = new File(cpPath);
 		if (f.exists()) {
+			log.info("Loading existing ClickPredictor in cp.ser");
 			cp = (ClickPredictor) Ser.load(cpPath);
 		}
-		else
+		else {
+			log.info("Creating new ClickPredictor");
 			cp = new ClickPredictor_Impl();
+		}
 		
 		return cp;
 	}

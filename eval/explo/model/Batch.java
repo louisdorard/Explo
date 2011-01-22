@@ -45,7 +45,7 @@ final public class Batch {
 	}
 	
 	public int getRandomIndex() {
-		return rgen.nextInt(arms.size()-1);
+		return rgen.nextInt(arms.size());
 	}
 
 }

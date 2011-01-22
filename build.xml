@@ -7,11 +7,15 @@
 	<!-- set global properties for this build -->
 	<property name="lib" location="lib"/>
 	<property name="src" location="eval"/>
+	<property name="test" location="test"/>
 	<property name="algo" location="algo"/>
 	<property name="build" location="build"/>
 	<property name="buildEval" location="${build}/eval"/>
 	<property name="buildOthers" location="${build}/others"/>
 	<property name="buildAlgo" location="${build}/algo"/>
+	<property name="buildTest" location="${build}/test"/>
+	<property name="data" location="data"/>
+	<property name="mem" value="512"/>
 	
 	<target name="init">
 		<!-- Create the time stamp -->
@@ -21,6 +25,7 @@
 		<mkdir dir="${buildEval}"/>
 		<mkdir dir="${buildOthers}"/>
 		<mkdir dir="${buildAlgo}"/>
+		<mkdir dir="${buildTest}"/>
 	</target>
 	
 	<target name="algo" depends="init" description="compile the algorithm">
@@ -66,17 +71,39 @@
 	
 	<target name="test">
 		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
-			<arg value="data.csv" />
+			<arg value="${data}" />
 			<arg value="5" />
 		</java>
 	</target>
 	
+	<target name="jvmtest" depends="init">
+		<javac srcdir="${test}/explo/util" destdir="${buildTest}"/>
+		<java classname="explo.util.JvmTester" fork="true">
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement location="${buildTest}"/>
+			</classpath>
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
+		</java>
+	</target>
+	
 	<target name="run">
-		<java jar="${build}/jar/${ant.project.name}.jar" fork="true"/>
+		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
+			<arg value="${data}"/>
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
+		</java>
 	</target>
 	
 	<target name="web" description="Prepare the folder for the web app">
-		<!-- TODO -->
+		<delete dir="bin"/>
+		<delete dir="${build}"/>
+		<delete dir="logs"/>
+		<delete file="cp.ser"/>
+		<delete file="${lib}/ClickPredictor.jar"/>
 	</target>
 	
 	<target name="clean" description="clean up">

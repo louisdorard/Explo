@@ -1,6 +1,9 @@
 package explo.control;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -12,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import explo.model.*;
 import explo.util.CSVReader;
+import explo.util.Zippie;
 
 /**
  * @author Louis Dorard, University College London
@@ -21,11 +25,15 @@ import explo.util.CSVReader;
  */
 final class Environment {
 	
-	private static org.apache.log4j.Logger log = Logger.getLogger(Run.class);
-	private HashMap<Arm,Integer> data = new HashMap<Arm, Integer>();
-	private Iterator<Arm> it; // iterator which is used to know where to take data points from in order to evaluate the click predictor implementation
-	private int R; // cumulated reward
-	private int nplays; // number of plays
+	private static org.apache.log4j.Logger log = Logger.getLogger(Environment.class);
+	private CSVReader reader;
+	private HashMap<Arm,Integer> data = new HashMap<Arm, Integer>(); // contains the data from the last batch we read from the data files
+	private String dirpath; // path to directory where the data files are
+	private String[] datafiles; // list of data files
+	private String unzipped = ""; // path where we unzip datafiles to, if necessary
+	private int it = -1; // iterator for datafiles
+	private int R = 0; // cumulated reward
+	private int nplays = 0; // number of plays
 	
 	protected int getR() {
 		return R;
@@ -36,45 +44,66 @@ final class Environment {
 	}
 
 	/**
-	 * Constructs an Environment from the data file in CSV format that contains the mapping (User,Option) to Reward.
-	 * @param filepath: path to the CSV file, as a String
+	 * Constructs an Environment from a directory containing data files in CSV format; these files are used to define the mapping (User,Option) to Reward.
+	 * @param dirpath: path to the directory of CSV files, as a String
 	 * @throws IOException
 	 * @throws ParseException 
 	 */
-	protected Environment(String filepath) throws IOException, ParseException{
+	protected Environment(String dirpath) throws IOException, ParseException{
 		
-		// Import data from CSV file
-		CSVReader reader = new CSVReader(new FileReader(filepath));
-	    String [] nextLine;
-	    Number[] featuresCON; // user features (continuous)
-	    String[] featuresNOM; // user features (nominal)
-	    User u; // user to be added to data
-        Option o; // option...
-        Integer r; // reward...
-        nextLine = reader.readNext(); // discard first line (used to give table headers)
-	    while ((nextLine = reader.readNext()) != null) {
-	    	// Import current line
-	        // nextLine[] is an array of values from the line
-	    	featuresCON = new Number[99];
-	    	featuresNOM = new String[20];
-	    	// the first 3 entries of nextLine can be discarded (visitorID, sessionID and timestamp)
-	    	for (int i=0; i<=98; i++)
-	    		featuresCON[i] = parseCON(nextLine[i+3]);
-	    	for (int i=217; i<=236; i++)
-	    		featuresNOM[i-217] = readNull(nextLine[i-116]);
-	        u = new User(featuresCON, featuresNOM);
-	        o = Option.values()[Integer.parseInt(nextLine[122])-1];
-	        r = Integer.parseInt(nextLine[123]);
-	        data.put(new Arm(u,o), r);
-	    }
-	    
-	    // Initialise other fields
-	    it = data.keySet().iterator();
-	    R = 0;
-	    nplays = 0;
+		this.dirpath = dirpath;
+		
+		// Get the paths to the data files contained in dirpath
+		File dir = new File(dirpath);
+		FilenameFilter filter = new FilenameFilter() {
+			// Defines a filter to be used on the list of returned files, so that we only retain the CSV ones (and the zipped CSV files)
+			// see http://www.exampledepot.com/egs/java.io/GetFiles.html
+		    public boolean accept(File dir, String name) {
+		        return (name.endsWith(".csv") || name.endsWith(".csv.gz"));
+		    }
+		};
+		datafiles = dir.list(filter);
+		if (datafiles == null) {
+		    // Either dir does not exist or is not a directory
+			datafiles[0] = dirpath; // if it's not a directory, it might be a file
+		}
+		
+		// Initialise reader
+		nextReader(); // get ready to tap into the right file in order to read data
 	    
 	}
 	
+	/**
+	 * Load the contents of a line read from CSV file, into data
+	 * @param nextLine
+	 * @throws ParseException
+	 */
+	private void loadLine(String[] nextLine) throws ParseException {
+
+	    Number[] featuresCON = new Number[99]; // user features (continuous)
+	    String[] featuresNOM = new String[20]; // user features (nominal)
+	    User u; // user to be added to data
+        Option o; // option...
+        Integer r; // reward...
+        
+        // nextLine is an array of values from the line
+    	// its first 3 entries can be discarded (visitorID, sessionID and timestamp)
+        // it has the following format:
+        // 0 1 2     3 ... 101          102 ... 121      122 133
+        //       |< featuresCON >|   |< featuresNOM >|    o   r
+    	if (nextLine==null || nextLine.length!=124)
+    		log.error("Data file doesn't have the right format");
+    	for (int i=0; i<=98; i++)
+    		featuresCON[i] = parseCON(nextLine[i+3]);
+    	for (int i=218; i<=237; i++)
+    		featuresNOM[i-218] = readNull(nextLine[i-116]);
+        u = new User(featuresCON, featuresNOM);
+        o = Option.values()[Integer.parseInt(nextLine[122])-1];
+        r = Integer.parseInt(nextLine[123]);
+        data.put(new Arm(u,o), r);
+        
+	}
+
 	/**
 	 * @param string
 	 * @return the number parsed from the string, or null if the string was "null"
@@ -105,38 +134,102 @@ final class Environment {
 	 * @return reward for a
 	 */
 	protected Integer play(Arm a) {
-		int r = data.get(a).intValue(); // get reward
+		int r = data.get(a).intValue(); // get reward; we will get a null exception if a is not present in the data
 		R = R + r;
 		nplays++;
 		log.debug("Played and got a reward of " + r);
 		return r; // return reward
 	}
+	
+	/**
+	 * If there are data points left, this takes at most explo.model.Batch.BATCH_MAX_SIZE of them, saves them in data and returns them as a Batch.
+	 * @return
+	 * @throws IOException 
+	 * @throws ParseException 
+	 */
+	protected Batch getNewBatch() throws IOException, ParseException {
+		
+		// 1. data must contain the (arm, reward) pairs for the new batch; we read these from the CSV reader; data will be used later, in play(), when we have decided which arm to play in that batch
+		
+		data.clear(); // purge data: we don't need to remember past data
+		String [] line; // variable to store line taken from CSV file and that contains the next data point
+		while (hasNext() && data.size()<Batch.BATCH_MAX_SIZE) {
+			// We haven't reached the maximum size for the batch yet, and there are data points left.
+			line = nextLine();
+	    	loadLine(line); // load this new line into the data object
+	    }
+		
+		// 2. we prepare a batch object to return; it is built by adding all the arms from data
+		
+		Batch b = new Batch();
+		Iterator<Arm> it = data.keySet().iterator();
+		while (it.hasNext())
+			b.add(it.next());
+		return b;
+		
+	}
+	
+	
+	private String[] nextLine() throws FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		// Next data point is either in the current CSV file, or in the next CSV file
+		String[] line;
+		if (reader.hasNext())
+			line = reader.readNext(); // should not be null
+		else { // means we've hit the end of children[it], so we have to increment "it" and load up the new file
+			nextReader(); // take next file
+			line = reader.readNext();
+		}
+		return line;
+	}
 
 	/**
-	 * Informs whether there are any data points left from the data set, that haven't been used yet.
-	 * @return
+	 * Change reader to a new CSVReader constructed from the  
+	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	protected boolean hasBatchesLeft() {
-		return it.hasNext();
+	private void nextReader() throws FileNotFoundException, IOException {
+		// TODO write doc
+		
+		// get path to next data file
+		it++;
+		String filepath = this.dirpath + "/" + datafiles[it];
+		if (it==0)
+			log.info("First CSV file: " + datafiles[it]);
+		else
+			log.info("Switched to next CSV file: " + datafiles[it]);
+		
+		// delete previously unzipped file, in order to save disk space:
+		File f = new File(unzipped);
+		if (f.exists())
+			f.delete();
+		
+		if (filepath.endsWith(".gz")) {
+			// unzip next data file (given by filepath) and load the CSV reader
+			unzipped = Zippie.unzip(filepath);
+			reader = new CSVReader(new FileReader(unzipped));
+		}
+		else
+			reader = new CSVReader(new FileReader(filepath));
+		
+		reader.readNext(); // discard first line (used to give table headers)
+		
 	}
-	
+
 	/**
-	 * If there are data points left, this takes at most explo.model.Batch.BATCH_MAX_SIZE of them and returns them as a Batch.
-	 * @return
+	 * @return boolean that indicates whether there is a next data point to get from the data files, or not
+	 * @throws IOException
 	 */
-	protected Batch getNewBatch() {
-		Batch b = new Batch();
-		for (int i=0; i<Batch.BATCH_MAX_SIZE; i++)
-			if (it.hasNext())
-				b.add(it.next());
-		return b;
-	}
-	
-	/**
-	 * @return total number of data points in the dataset, i.e. total number of arms
-	 */
-	protected int size(){
-		return data.size();
+	public boolean hasNext() throws IOException {
+		boolean b = (reader.hasNext() || it<(datafiles.length-1));
+		if (!b) {
+			// if there's no more data points left, we are not going to be using this Environment anymore, so we can clean up:
+			// delete previously unzipped file, if it exists
+			File f = new File(unzipped);
+			if (f.exists())
+				f.delete();
+		}
+		return b; // the next line is either in the current file (children[it]), or in a new file, children[it+1], if it exists
 	}
 	
 }
