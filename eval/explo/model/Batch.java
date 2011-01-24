@@ -10,24 +10,34 @@ import java.util.Random;
  */
 final public class Batch {
 	
+	/**
+	 * Maximum number of arms in any given batch.
+	 */
 	public static final int BATCH_MAX_SIZE = 6;
 	
 	private static Random rgen = new Random(); // random generator used to select arms at random in a batch
 	
 	private List<Arm> arms = new ArrayList<Arm>();
 
+	/**
+	 * Constructor.
+	 */
 	public Batch() {
 		// initially, the batch is empty
 	}
 
 	/**
-	 * Arms can be added to the batch owing to this method.
-	 * @param a
+	 * Adds an arm to the current batch.
+	 * @param a - arm to be added
 	 */
 	public void add(Arm a){
 		arms.add(a); 
 	}
 	
+	/**
+	 * Returns the size of the batch as the number of arms it contains (lesser than or equal to BATCH_MAX_SIZE).
+	 * @return number of arms
+	 */
 	public int size() {
 		return arms.size();
 	}
@@ -40,10 +50,19 @@ final public class Batch {
 		return s;
 	}
 
+	/**
+	 * Gets the ith arm in the current batch.
+	 * @param i - index of the arm to be returned
+	 * @return ith arm
+	 */
 	public Arm getArm(int i) {
 		return arms.get(i);
 	}
 	
+	/**
+	 * Returns a randomly chosen arm index.
+	 * @return index between 0 and the size of the batch (excluded)
+	 */
 	public int getRandomIndex() {
 		return rgen.nextInt(arms.size());
 	}

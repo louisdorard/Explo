@@ -19,21 +19,31 @@ import explo.model.*;
 import explo.util.Ser;
 import explo.util.TimeKeeper;
 
+/**
+ * TODO write this
+ * @author Louis Dorard, University College London
+ */
 final public class Run {
 	
+	/**
+	 * Instance of the algorithm to be evaluated. Chooses arms to play.
+	 */
+	private static ClickPredictor cp;
+	
+	/**
+	 * Used to feed data to this.cp and to evaluate it through its cumulative reward.
+	 */
+	private static Environment e;
+	
 	private static org.apache.log4j.Logger log = Logger.getLogger(Run.class);
-	public static ClickPredictor cp; // instance of ClickPredictor to be used to choose arms to play
-	public static Environment e; // used to evaluate this instance
 	private static final long TIME_LIMIT = TimeKeeper.calibrate(); // time limit for each call to ClickPredictor.choose()
 	private static String cpPath = "cp.ser"; // path to the file in which we save the ClickPredictor object, so that we can memorise the state of the algo from one run to the other
 	private static ExecutorService executor = Executors.newFixedThreadPool(1); // used for running ClickPredictor in another thread with time restriction
 	private static boolean testMode; // indicates whether we run in test mode or not
 	
 	/**
-	 * Runs the participant's algorithm on the dataset, and logs the cumulative reward.
-	 * First parameter is the path to the CSV data file
-	 * Second parameter, if given, implies that the test mode is entered and specifies the number of iterations to be performed for tests
-	 * @param args
+	 * Runs the participant's algorithm on the dataset and logs the cumulative reward.
+	 * @param args (opt.) - the first argument is the path to the CSV data file; the second argument (if given) specifies the number of iterations to be performed for tests
 	 * @throws ParseException 
 	 * @throws IOException 
 	 * @throws NumberFormatException 
@@ -68,12 +78,15 @@ final public class Run {
 		
 	}
 	
+	/**
+	 * Performs as many iterations as there are data points.
+	 */
 	private static void iterate() throws IOException, ParseException {
 		iterate(-1);
 	}
 	
 	/**
-	 * Perform nit iterations with e and cp.
+	 * Performs nit iterations with this.e and this.cp.
 	 * An iteration consists of getting a batch from the environment, using cp in limited time to choose an arm to play in this batch, playing the selected arm, receiving a reward, and learning from this observation. 
 	 * If nit is <=0, we run as many iterations as allowed by the data set.
 	 * @param nit
@@ -140,7 +153,7 @@ final public class Run {
 	}
 
 	/**
-	 * Round a given double and return a double with only 2 decimals.
+	 * Rounds a given double and returns a double with only 2 decimals.
 	 * This is called before displaying the proportion of allowed time spent for one iteration.
 	 * @param d
 	 * @return
@@ -174,9 +187,8 @@ final public class Run {
 		return cp;
 	}
 
-
 	/**
-	 * Choose an arm to play among those proposed in a given batch. This method uses explo.agent.ClickPredictor.choose() and limits its execution time by executing it in a separate thread.
+	 * Chooses an arm to play among those proposed in a given batch. This method uses explo.agent.ClickPredictor.choose() and limits its execution time by executing it in a separate thread.
 	 * @param b
 	 * @return
 	 * @throws InterruptedException

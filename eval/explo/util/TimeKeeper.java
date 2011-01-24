@@ -1,5 +1,12 @@
-/*************************************************************************
- * From: http://www.cs.princeton.edu/introcs/23recursion/Fibonacci.java.html
+package explo.util;
+
+import java.lang.management.*;
+
+/**
+ * A utility class to keep track of user time and calibrate its measure on the current JVM.
+ * @author Louis Dorard, University College London
+ * 
+ * Fibonacci programme by http://www.cs.princeton.edu/introcs/23recursion/Fibonacci.java.html
  *
  *  Compilation:  javac luigi/TestAlgo.java
  *  Execution:    java luigi/TestAlgo
@@ -26,14 +33,7 @@
  *      don't bother to check for overflow.
  *
  *************************************************************************/
-
-package explo.util;
-
-import java.lang.management.*;
-
-public final class TimeKeeper {
-	
-	static long budget;
+public final class TimeKeeper {	
 	
 	public static long getUserTime( ) {
 		// see http://nadeausoftware.com/articles/2008/03/java_tip_how_get_cpu_and_user_time_benchmarking
@@ -48,8 +48,8 @@ public final class TimeKeeper {
     }
 
     /**
-	 * Calibrate the execution time on this JVM, to set a time limit.
-	 * @return
+	 * Calibrates the execution time of on this JVM by running a fixed number of naive Fibonacci iterations.
+	 * @return time taken (to be used to set a time budget for further computations)
 	 */
     public static long calibrate() {
     	long start = getUserTime(); // start user time in nano seconds

@@ -18,34 +18,27 @@ import explo.util.CSVReader;
 import explo.util.Zippie;
 
 /**
+ * As in the bandit terminology, an Environment is an object to be called to know which arms are available, and to play arms and observe rewards.
+ * Here, the reward function is defined as a list of arm-reward pairs (implemented in the 'data' variable).
+ * Playing an arm modifies the number of plays and the cumulative reward.
+ * All fields of the Envirnoment class are private, and all methods are protected so that they can only be called from the explo.control package.
  * @author Louis Dorard, University College London
- * As in the bandit terminology, the Environment is the object to be called to know which arms are available (here with 'getNewBatch()') and to play an arm.
- * This is done by calling the reward function, defined here as a list of arm-reward pairs (implemented in the 'data' variable), and by modifying the number of plays and the cumulated reward.
- * All fields are private, and all methods are protected so that they can only be called from the explo.control package.
  */
 final class Environment {
 	
 	private static org.apache.log4j.Logger log = Logger.getLogger(Environment.class);
-	private CSVReader reader;
+	private CSVReader reader; // used to read into CSV files
 	private HashMap<Arm,Integer> data = new HashMap<Arm, Integer>(); // contains the data from the last batch we read from the data files
 	private String dirpath; // path to directory where the data files are
 	private String[] datafiles; // list of data files
 	private String unzipped = ""; // path where we unzip datafiles to, if necessary
 	private int it = -1; // iterator for datafiles
-	private int R = 0; // cumulated reward
+	private int R = 0; // cumulative reward
 	private int nplays = 0; // number of plays
-	
-	protected int getR() {
-		return R;
-	}
-	
-	protected int getNplays() {
-		return nplays;
-	}
 
 	/**
-	 * Constructs an Environment from a directory containing data files in CSV format; these files are used to define the mapping (User,Option) to Reward.
-	 * @param dirpath: path to the directory of CSV files, as a String
+	 * Constructs an Environment from a directory containing data files in CSV format. These files are used to define the mapping (User,Option) to Reward.
+	 * @param dirpath - path to the directory of CSV files, as a String
 	 * @throws IOException
 	 * @throws ParseException 
 	 */
@@ -74,7 +67,81 @@ final class Environment {
 	}
 	
 	/**
-	 * Load the contents of a line read from CSV file, into data
+	 * Gets the cumulative reward
+	 * @return cumulative reward
+	 */
+	protected int getR() {
+		return R;
+	}
+	
+	/**
+	 * Gets the number of plays
+	 * @return number of plays
+	 */
+	protected int getNplays() {
+		return nplays;
+	}
+	
+	/**
+	 * Indicates whether there is a next data point to get from the data files
+	 * @return true if there is a next data point, false otherwise
+	 * @throws IOException
+	 */
+	protected boolean hasNext() throws IOException {
+		boolean b = (reader.hasNext() || it<(datafiles.length-1));
+		if (!b) {
+			// if there's no more data points left, we are not going to be using this Environment anymore, so we can clean up:
+			// delete previously unzipped file, if it exists
+			File f = new File(unzipped);
+			if (f.exists())
+				f.delete();
+		}
+		return b; // the next line is either in the current file (children[it]), or in a new file, children[it+1], if it exists
+	}
+	
+	/**
+	 * Plays a given arm, updates the number of plays and cumulative reward, and returns the reward observed for this arm.
+	 * @param a - given arm to play
+	 * @return observed reward for a
+	 */
+	protected Integer play(Arm a) {
+		int r = data.get(a).intValue(); // get reward; we will get a null exception if a is not present in the data
+		R = R + r;
+		nplays++;
+		log.debug("Played and got a reward of " + r);
+		return r; // return reward
+	}
+	
+	/**
+	 * Tries to read at most explo.model.Batch.BATCH_MAX_SIZE data points, returns them as a Batch and saves them in the data field of the environment.
+	 * @return new batch of data points
+	 * @throws IOException - if can't read data
+	 * @throws ParseException - ditto
+	 */
+	protected Batch getNewBatch() throws IOException, ParseException {
+		
+		// 1. data must contain the (arm, reward) pairs for the new batch; we read these from the CSV reader; data will be used later, in play(), when we have decided which arm to play in that batch
+		
+		data.clear(); // purge data: we don't need to remember past data
+		String [] line; // variable to store line taken from CSV file and that contains the next data point
+		while (hasNext() && data.size()<Batch.BATCH_MAX_SIZE) {
+			// We haven't reached the maximum size for the batch yet, and there are data points left.
+			line = nextLine();
+	    	loadLine(line); // load this new line into the data object
+	    }
+		
+		// 2. we prepare a batch object to return; it is built by adding all the arms from data
+		
+		Batch b = new Batch();
+		Iterator<Arm> it = data.keySet().iterator();
+		while (it.hasNext())
+			b.add(it.next());
+		return b;
+		
+	}
+	
+	/**
+	 * Loads the contents of a line read from CSV file, into data
 	 * @param nextLine
 	 * @throws ParseException
 	 */
@@ -105,6 +172,7 @@ final class Environment {
 	}
 
 	/**
+	 * Gets numbers from strings
 	 * @param string
 	 * @return the number parsed from the string, or null if the string was "null"
 	 * @throws ParseException
@@ -118,8 +186,9 @@ final class Environment {
 	}
 
 	/**
+	 * Returns the input or a null pointer if the value of the input is "null"
 	 * @param string
-	 * @return the string or a null pointer if the value of the string is "null"
+	 * @return string or null if the value of the string is "null"
 	 */
 	private String readNull(String string) {
 		if (string.equals("null"))
@@ -127,69 +196,32 @@ final class Environment {
 		else
 			return string;
 	}
-
-	/**
-	 * Play a given arm, update number of plays and cumulative reward, and return reward for this arm.
-	 * @param a
-	 * @return reward for a
-	 */
-	protected Integer play(Arm a) {
-		int r = data.get(a).intValue(); // get reward; we will get a null exception if a is not present in the data
-		R = R + r;
-		nplays++;
-		log.debug("Played and got a reward of " + r);
-		return r; // return reward
-	}
 	
 	/**
-	 * If there are data points left, this takes at most explo.model.Batch.BATCH_MAX_SIZE of them, saves them in data and returns them as a Batch.
-	 * @return
-	 * @throws IOException 
-	 * @throws ParseException 
+	 * Reads the next line (data point) from data
+	 * @return the next line as a string array
+	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	protected Batch getNewBatch() throws IOException, ParseException {
-		
-		// 1. data must contain the (arm, reward) pairs for the new batch; we read these from the CSV reader; data will be used later, in play(), when we have decided which arm to play in that batch
-		
-		data.clear(); // purge data: we don't need to remember past data
-		String [] line; // variable to store line taken from CSV file and that contains the next data point
-		while (hasNext() && data.size()<Batch.BATCH_MAX_SIZE) {
-			// We haven't reached the maximum size for the batch yet, and there are data points left.
-			line = nextLine();
-	    	loadLine(line); // load this new line into the data object
-	    }
-		
-		// 2. we prepare a batch object to return; it is built by adding all the arms from data
-		
-		Batch b = new Batch();
-		Iterator<Arm> it = data.keySet().iterator();
-		while (it.hasNext())
-			b.add(it.next());
-		return b;
-		
-	}
-	
-	
 	private String[] nextLine() throws FileNotFoundException, IOException {
-		// TODO Auto-generated method stub
+		// assuming hasNext() would be true...
+		
 		// Next data point is either in the current CSV file, or in the next CSV file
 		String[] line;
-		if (reader.hasNext())
-			line = reader.readNext(); // should not be null
-		else { // means we've hit the end of children[it], so we have to increment "it" and load up the new file
+		if (!reader.hasNext()) // means we've hit the end of children[it], so we have to increment "it" and load up the new file
 			nextReader(); // take next file
-			line = reader.readNext();
-		}
+		line = reader.readNext(); // should not be null
 		return line;
+		
 	}
 
 	/**
-	 * Change reader to a new CSVReader constructed from the  
+	 * Changes this.reader to a new CSVReader constructed from the next data file.
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
 	private void nextReader() throws FileNotFoundException, IOException {
-		// TODO write doc
+		// assuming hasNext() would be true...
 		
 		// get path to next data file
 		it++;
@@ -214,22 +246,6 @@ final class Environment {
 		
 		reader.readNext(); // discard first line (used to give table headers)
 		
-	}
-
-	/**
-	 * @return boolean that indicates whether there is a next data point to get from the data files, or not
-	 * @throws IOException
-	 */
-	public boolean hasNext() throws IOException {
-		boolean b = (reader.hasNext() || it<(datafiles.length-1));
-		if (!b) {
-			// if there's no more data points left, we are not going to be using this Environment anymore, so we can clean up:
-			// delete previously unzipped file, if it exists
-			File f = new File(unzipped);
-			if (f.exists())
-				f.delete();
-		}
-		return b; // the next line is either in the current file (children[it]), or in a new file, children[it+1], if it exists
 	}
 	
 }

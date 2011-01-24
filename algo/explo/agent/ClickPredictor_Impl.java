@@ -6,11 +6,15 @@ import explo.model.Arm;
 import explo.model.Batch;
 //import explo.util.TimeKeeper;
 
+/**
+ * Implementation of a click predictor that randomly selects arms to play.
+ * @author Louis Dorard, University College London
+ */
 public class ClickPredictor_Impl implements ClickPredictor {
 	
 	private static final long serialVersionUID = 1L; // first version of the ClickPredictor object
 	
-	HashMap<Arm,Integer> training = new HashMap<Arm, Integer>();
+	private HashMap<Arm,Integer> training = new HashMap<Arm, Integer>();
 	
 	public void learn(Arm a, Integer reward) {
 		// here we don't learn but just memorise the training examples

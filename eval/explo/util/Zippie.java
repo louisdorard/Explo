@@ -3,9 +3,20 @@ package explo.util;
 import java.util.zip.*;
 import java.io.*;
  
-// From http://code.hammerpig.com/how-to-gunzip-files-with-java.html
+/**
+ * A utility class to uncompress gunzipped files.
+ * (from http://code.hammerpig.com/how-to-gunzip-files-with-java.html)
+ * @author Hammerpig and Louis Dorard
+ */
 public class Zippie {
 
+	/**
+	 * Unzips given file and returns path where the result has been written to.
+	 * @param inFilePath - file to be unzipped
+	 * @return path to the unzipped file
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
 	public static String unzip(String inFilePath) throws FileNotFoundException, IOException
 	{
 	    GZIPInputStream gzipInputStream = new GZIPInputStream(new FileInputStream(inFilePath));

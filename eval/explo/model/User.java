@@ -9,14 +9,39 @@ import java.io.Serializable;
 public class User implements Serializable{
 	
 	private static final long serialVersionUID = 1L;
-	final public Number[] featuresCON;
-	final public String[] featuresNOM; 
+	
+	final private Number[] featuresCON; // continuous features.
+	final private String[] featuresNOM; // nominal features 
 
+	/**
+	 * Constructor.
+	 * @param featuresCON
+	 * @param featuresNOM
+	 */
 	public User(Number[] featuresCON, String[] featuresNOM) {
 		this.featuresCON = featuresCON;
 		this.featuresNOM = featuresNOM;
 	}
 	
+	/**
+	 * Gets the continuous features.
+	 * @return continuous features
+	 */
+	public Number[] getFeaturesCON() {
+		return featuresCON;
+	}
+
+	/**
+	 * Gets the nominal features.
+	 * @return nominal features
+	 */
+	public String[] getFeaturesNOM() {
+		return featuresNOM;
+	}
+	
+	/**
+	 * Prints the feature values on a single line, separated by commas.
+	 */
 	public String toString(){
 		String s = featuresCON[0].toString();
 		for(int i=1; i<featuresCON.length; i++){

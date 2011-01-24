@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="Explo" default="main" basedir=".">
+<project name="Explo" default="all" basedir=".">
 	
 	<description>
         Build file for the Explo project.
@@ -17,7 +17,7 @@
 	<property name="data" location="data"/>
 	<property name="mem" value="512"/>
 	
-	<target name="init">
+	<target name="init" description="Create build directories">
 		<!-- Create the time stamp -->
 		<tstamp/>
 		<!-- Create the build directory structure used by compile -->
@@ -28,7 +28,7 @@
 		<mkdir dir="${buildTest}"/>
 	</target>
 	
-	<target name="algo" depends="init" description="compile the algorithm">
+	<target name="algo" depends="init" description="Compile and package the click predictor algorithm into a JAR">
 		<javac srcdir="${src}/explo/model" destdir="${buildOthers}"/>
 		<javac srcdir="${src}/explo/agent" destdir="${buildOthers}"/>
 		<javac srcdir="${src}/explo/util" destdir="${buildOthers}"/>
@@ -44,7 +44,7 @@
 		<jar jarfile="${lib}/ClickPredictor.jar" basedir="${buildAlgo}"/>
 	</target>
 	
-	<target name="eval" depends="init" description="compile the evaluation code">
+	<target name="eval" depends="init" description="Compile the evaluation code">
 		<!-- Compile the java code from ${src} into ${buildEval} -->
 		<javac srcdir="${src}" destdir="${buildEval}">
 			<!-- Add all JAR files located in lib directory (including ClickPredictor.jar) to classpath -->
@@ -58,7 +58,7 @@
 		<copy file="${src}/log4j.properties" todir="${buildEval}"/>
 	</target>
 	
-	<target name="jar" depends="eval">
+	<target name="main" depends="eval" description="Package the evaluation code into a JAR">
 		<mkdir dir="${build}/jar"/>
 		<jar destfile="${build}/jar/${ant.project.name}.jar" basedir="${buildEval}">
 			<zipfileset includes="**/*.class" src="${lib}/log4j-1.2.16.jar"/>
@@ -69,14 +69,14 @@
 		</jar>
 	</target>
 	
-	<target name="test">
+	<target name="test" description="Test by running the evaluation for 5 iterations only">
 		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
 			<arg value="${data}" />
 			<arg value="5" />
 		</java>
 	</target>
 	
-	<target name="jvmtest" depends="init">
+	<target name="jvmtest" depends="init" description="Test the JVM memory limit options">
 		<javac srcdir="${test}/explo/util" destdir="${buildTest}"/>
 		<java classname="explo.util.JvmTester" fork="true">
 			<classpath>
@@ -89,7 +89,7 @@
 		</java>
 	</target>
 	
-	<target name="run">
+	<target name="run" description="Run the evaluation on the whole dataset">
 		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
 			<arg value="${data}"/>
 			<jvmarg value="-server"/>
@@ -106,12 +106,10 @@
 		<delete file="${lib}/ClickPredictor.jar"/>
 	</target>
 	
-	<target name="clean" description="clean up">
-		<!-- Delete the build directories -->
+	<target name="clean" description="Delete build directories">
 		<delete dir="${build}"/>
 	</target>
 	
-	<target name="main" depends="eval,jar,test"/>
-	<target name="all" depends="algo,main"/>
+	<target name="all" depends="algo,main,test" description="Compile all and run test"/>
 	
 </project>
