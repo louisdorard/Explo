@@ -15,7 +15,7 @@
 	<property name="buildAlgo" location="${build}/algo"/>
 	<property name="buildTest" location="${build}/test"/>
 	<property name="data" location="data"/>
-	<property name="mem" value="512"/>
+	<property name="mem" value="1536"/>
 	
 	<target name="init" description="Create build directories">
 		<!-- Create the time stamp -->
@@ -73,6 +73,9 @@
 		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
 			<arg value="${data}" />
 			<arg value="5" />
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
 		</java>
 	</target>
 	
@@ -89,7 +92,8 @@
 		</java>
 	</target>
 	
-	<target name="run" description="Run the evaluation on the whole dataset">
+	<target name="run" depends="main" description="Run the evaluation on the whole dataset">
+		<delete dir="logs"/>
 		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
 			<arg value="${data}"/>
 			<jvmarg value="-server"/>

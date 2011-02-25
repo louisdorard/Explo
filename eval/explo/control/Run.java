@@ -18,6 +18,7 @@ import explo.agent.ClickPredictor_Impl;
 import explo.model.*;
 import explo.util.Ser;
 import explo.util.TimeKeeper;
+import explo.util.Zippie;
 
 /**
  * TODO write this
@@ -44,12 +45,9 @@ final public class Run {
 	/**
 	 * Runs the participant's algorithm on the dataset and logs the cumulative reward.
 	 * @param args (opt.) - the first argument is the path to the CSV data file; the second argument (if given) specifies the number of iterations to be performed for tests
-	 * @throws ParseException 
 	 * @throws IOException 
-	 * @throws NumberFormatException 
-	 * @throws ClassNotFoundException 
 	 */
-	public static void main(String[] args) throws NumberFormatException, IOException, ParseException, ClassNotFoundException {
+	public static void main(String[] args) throws IOException {
 		
 		// Initialisation
 		if (args.length>1 && args[1]!=null) {
@@ -58,23 +56,38 @@ final public class Run {
 		}
 		else
 			testMode = false;
-		if (args.length>0)
-			e = new Environment(args[0]);
-		else
-			e = new Environment("data");
-		if (testMode)
-			cpPath = "test/" + cpPath;
-		cp = initAlgo();
 		
-		if (testMode)
-			iterate(Integer.parseInt(args[1]));
-		else
-			iterate();
-		
-		// All data from environment has been used, we can now save the algorithm
-		Ser.save(cp, cpPath); // save the state of the ClickPredictor algorithm in a file, for retrieval later.
 		log.info("Phase number: " + 1);
-		log.info("Cumulative reward: " + e.getR());
+		
+		try {
+			
+			if (args.length>0)
+				e = new Environment(args[0]);
+			else
+				e = new Environment("data");
+			if (testMode)
+				cpPath = "test/" + cpPath;
+			cp = initAlgo();
+			
+			if (testMode)
+				iterate(Integer.parseInt(args[1]));
+			else
+				iterate();
+			
+			// All data from environment has been used, we can now save the algorithm
+			// Ser.save(cp, cpPath); // save the state of the ClickPredictor algorithm in a file, for retrieval later.
+			log.info("Cumulative reward: " + e.getR());
+			
+		} catch (Exception e) {
+			
+			log.error(e.getStackTrace());
+			
+		}
+		
+		// Package the logs in a zip archive
+		if (!testMode)
+			Zippie.zipFolder("logs", "logs-" + e.getR() + ".zip"); // zips the logs/ directory, with an archive name given in second parameter
+		System.exit(0); // stops ant from possibly "hanging"
 		
 	}
 	

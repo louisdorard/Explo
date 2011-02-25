@@ -11,8 +11,13 @@ public class ZippieTester {
 
 	@Test
 	public void testUnzip() throws FileNotFoundException, IOException {
-		Zippie.unzip("data/data.0.csv.gz");
+		Zippie.gunzip("data/data.0.csv.gz");
 		assertTrue(true);
+	}
+	
+	@Test
+	public void testZip() throws IOException {
+		Zippie.zipFolder("data/", "tada.zip");
 	}
 
 }

@@ -13,6 +13,7 @@ import explo.model.Batch;
 public class ClickPredictor_Impl implements ClickPredictor {
 	
 	private static final long serialVersionUID = 1L; // first version of the ClickPredictor object
+	// TODO: test when incrementing this
 	
 	private HashMap<Arm,Integer> training = new HashMap<Arm, Integer>();
 	

@@ -238,7 +238,7 @@ final class Environment {
 		
 		if (filepath.endsWith(".gz")) {
 			// unzip next data file (given by filepath) and load the CSV reader
-			unzipped = Zippie.unzip(filepath);
+			unzipped = Zippie.gunzip(filepath);
 			reader = new CSVReader(new FileReader(unzipped));
 		}
 		else
