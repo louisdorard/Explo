@@ -78,10 +78,10 @@ final public class Run {
 			// Ser.save(cp, cpPath); // save the state of the ClickPredictor algorithm in a file, for retrieval later.
 			log.info("Cumulative reward: " + e.getR());
 			
-		} catch (Exception e) {
-			
-			log.error(e.getStackTrace());
-			
+		} catch (Exception e) { 
+			java.io.StringWriter sw = new java.io.StringWriter(); 
+			e.printStackTrace(new java.io.PrintWriter(sw)); 
+			log.error(sw.toString());
 		}
 		
 		// Package the logs in a zip archive
@@ -124,7 +124,6 @@ final public class Run {
 			c = c+1;
 			if (nit>0 && c>nit)
 				break;
-			log.info("Batch #" + c);
 			
 			
 			/*
@@ -140,13 +139,12 @@ final public class Run {
 					i = choose(b);
 				} catch (TimeoutException ex) {
 					i = b.getRandomIndex();
-				    log.warn("\t Time limit exceeded. Random choice was made.");
+				    log.warn("Time limit exceeded. Random choice was made for batch #" + c);
 				} catch (Exception ex) { // can be either InterruptedException or ExecutionException
 					log.error(ex);
 					break;
 				}
 			double prop = round((double) (TimeKeeper.getUserTime() - start) / TIME_LIMIT);
-			log.info("\t" + prop + "% of allowed time");
 			if (prop > 1)
 				log.error("The algorithm took too long"); // this error is used by the webapp for tests, but it is also useful as a double check on the computation time when not in test mode
 			
@@ -158,9 +156,10 @@ final public class Run {
 			reward = e.play(a);
 			cp.learn(a, reward);
 			
+
+			log.info("Batch #" + c + ": reward=" + reward + " ; " + prop + "% of allowed time");
 			log.trace("\t Chose entry number " + i + ":");
 			log.trace("\t \t " + a);
-			log.trace("\t \t Reward " + reward);
 			
 		}
 	}
