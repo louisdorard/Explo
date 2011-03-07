@@ -29,11 +29,11 @@
 	</target>
 	
 	<target name="algo" depends="init" description="Compile and package the click predictor algorithm into a JAR">
-		<javac srcdir="${src}/explo/model" destdir="${buildOthers}" includeantruntime="false"/>
-		<javac srcdir="${src}/explo/agent" destdir="${buildOthers}" includeantruntime="false"/>
-		<javac srcdir="${src}/explo/util" destdir="${buildOthers}" includeantruntime="false"/>
+		<javac srcdir="${src}/explo/model" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
+		<javac srcdir="${src}/explo/agent" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
+		<javac srcdir="${src}/explo/util" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
 		<!-- Compile the java code from ${algo} into ${buildAlgo} -->
-		<javac srcdir="${algo}" destdir="${buildAlgo}" includeantruntime="false">
+		<javac srcdir="${algo}" destdir="${buildAlgo}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
 			<!-- Add explo.model agent and util to the classpath -->
 			<classpath>
 				<pathelement path="${classpath}"/>
@@ -46,7 +46,7 @@
 	
 	<target name="eval" depends="init" description="Compile the evaluation code">
 		<!-- Compile the java code from ${src} into ${buildEval} -->
-		<javac srcdir="${src}" destdir="${buildEval}" includeantruntime="false">
+		<javac srcdir="${src}" destdir="${buildEval}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
 			<!-- Add all JAR files located in lib directory (including ClickPredictor.jar) to classpath -->
 			<classpath>
 				<pathelement path="${classpath}"/>
@@ -80,7 +80,7 @@
 	</target>
 	
 	<target name="jvmtest" depends="init" description="Test the JVM memory limit options">
-		<javac srcdir="${test}/explo/util" destdir="${buildTest}" includeantruntime="false"/>
+		<javac srcdir="${test}/explo/util" destdir="${buildTest}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
 		<java classname="explo.util.JvmTester" fork="true">
 			<classpath>
 				<pathelement path="${classpath}"/>

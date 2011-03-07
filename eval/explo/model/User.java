@@ -43,7 +43,7 @@ public class User implements Serializable{
 	 * Prints the feature values on a single line, separated by commas.
 	 */
 	public String toString(){
-		String s = featuresCON[0].toString();
+		String s = printNull(featuresCON[0]);
 		for(int i=1; i<featuresCON.length; i++){
 			s = s + " , " + printNull(featuresCON[i]);
 		}
