@@ -9,7 +9,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import explo.agent.ClickPredictor;
-import explo.agent.ClickPredictor_Impl;
 import explo.control.Environment;
 import explo.model.Arm;
 import explo.model.Batch;
@@ -27,7 +26,7 @@ public class EnvironmentTester {
 	@Before
 	public void setUp() throws Exception {
 		e = new Environment(dataPath);
-		cp = new ClickPredictor_Impl();
+		cp = new ClickPredictor();
 	}
 	
 	@Test

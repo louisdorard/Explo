@@ -66,5 +66,13 @@ final public class Batch {
 	public int getRandomIndex() {
 		return rgen.nextInt(arms.size());
 	}
-
+	
+	/**
+	 * Returns a randomly chosen arm.
+	 * @return arm in the batch
+	 */
+	public Arm getRandomArm() {
+		return getArm(getRandomIndex());
+	}
+	
 }

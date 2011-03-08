@@ -14,14 +14,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import explo.agent.ClickPredictor;
-import explo.agent.ClickPredictor_Impl;
 import explo.model.*;
 import explo.util.Ser;
 import explo.util.TimeKeeper;
 import explo.util.Zippie;
 
 /**
- * TODO write this
+ * Main class for running the evaluation of a click predictor on a dataset.
  * @author Louis Dorard, University College London
  */
 final public class Run {
@@ -37,10 +36,11 @@ final public class Run {
 	private static Environment e;
 	
 	private static org.apache.log4j.Logger log = Logger.getLogger(Run.class);
-	private static final long TIME_LIMIT = TimeKeeper.calibrate(); // time limit for each call to ClickPredictor.choose()
+	private static final long TIME_LIMIT = TimeKeeper.calibrate(); // time limit for each iteration, in nanoseconds
 	private static String cpPath = "cp.ser"; // path to the file in which we save the ClickPredictor object, so that we can memorise the state of the algo from one run to the other
 	private static ExecutorService executor = Executors.newFixedThreadPool(1); // used for running ClickPredictor in another thread with time restriction
-	private static boolean testMode; // indicates whether we run in test mode or not
+	private static boolean testMode; // indicates whether we run in test mode or not  
+    private static Runtime runtime = Runtime.getRuntime(); // getting the runtime reference from system
 	
 	/**
 	 * Runs the participant's algorithm on the dataset and logs the cumulative reward.
@@ -109,8 +109,6 @@ final public class Run {
 	private static void iterate(int nit) throws IOException, ParseException {
 		
 		Batch b; // batch for current iteration
-		int i; // index of chosen arm in b
-		Arm a; // corresponding arm
 		Integer reward; // reward for a
 		int c = 0; // current batch number
 		
@@ -127,41 +125,73 @@ final public class Run {
 			
 			
 			/*
-			 * Choose which arm to play in this batch
+			 * Choose which arm to play in this batch, play and learn
 			 * (measure and log execution time)
 			 */
 			long start = TimeKeeper.getUserTime();
-			if (testMode)
-				i = cp.choose(b);
-			else
-				// time is limited when not in test mode
+			if (testMode) {
+				reward = choosePlayLearn(b);
+			}
+			else { // time is limited when not in test mode
+				ClickPredictor cp2 = new ClickPredictor(cp); // saves the current state of the click predictor
 				try {
-					i = choose(b);
+					reward = choosePlayLearnTimelimited(b);
 				} catch (TimeoutException ex) {
-					i = b.getRandomIndex();
+					cp = cp2; // this acts as a clean-up of the click predictor, which computations were not finished
+					reward = e.play(b.getRandomArm());
 				    log.warn("Time limit exceeded. Random choice was made for batch #" + c);
 				} catch (Exception ex) { // can be either InterruptedException or ExecutionException
 					log.error(ex);
 					break;
 				}
-			double prop = round((double) (TimeKeeper.getUserTime() - start) / TIME_LIMIT);
-			if (prop > 1)
+			}
+			
+			double time = round((double) (TimeKeeper.getUserTime() - start) / TIME_LIMIT);
+			if (time > 1)
 				log.error("The algorithm took too long"); // this error is used by the webapp for tests, but it is also useful as a double check on the computation time when not in test mode
 			
+			double memory = round((double) (runtime.totalMemory() - runtime.freeMemory()) / runtime.totalMemory());
 			
-			/*
-			 * Play the chosen arm and learn 
-			 */
-			a = b.getArm(i);
-			reward = e.play(a);
-			cp.learn(a, reward);
-			
-
-			log.info("Batch #" + c + ": reward=" + reward + " ; " + prop + "% of allowed time");
-			log.trace("\t Chose entry number " + i + ":");
-			log.trace("\t \t " + a);
+			log.info("Batch #" + c + ": reward=" + reward + " ; " + time*100 + "% of allowed time" + " ; " + memory*100 + "% memory used");
 			
 		}
+	}
+	
+	/**
+	 * Chooses an arm to play, plays it, gets reward and learns from this observation.
+	 * @param b - batch of arms to choose from
+	 * @return reward obtained for the chosen arm
+	 */
+	private static Integer choosePlayLearn(Batch b) {
+		int i = cp.choose(b); // index of chosen arm in b
+		Arm a = b.getArm(i); // corresponding arm
+		Integer reward = e.play(a);
+		cp.learn(a, reward);
+		log.trace("\t Chose entry number " + i + ":");
+		log.trace("\t \t " + a);
+		return reward;
+	}
+	
+
+	/**
+	 * Same as choosePlayLearn(Batch b) but limits its execution time by executing in a separate thread.
+	 * @param b - batch of arms to choose from
+	 * @return reward obtained for the chosen arm
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 * @throws TimeoutException
+	 */
+	private static Integer choosePlayLearnTimelimited(final Batch b) throws InterruptedException, ExecutionException, TimeoutException {
+		FutureTask<Integer> theTask = null;
+	    // create new task
+	    theTask = new FutureTask<Integer>(new Callable<Integer>() {
+	        public Integer call() {
+	        	return choosePlayLearn(b);
+	        }
+	    });
+	    executor.execute(theTask);
+	    // wait for the execution to finish, timeout given by constant
+	    return theTask.get(TIME_LIMIT, TimeUnit.NANOSECONDS);
 	}
 
 	/**
@@ -193,31 +223,10 @@ final public class Run {
 		}
 		else {
 			log.info("Creating new ClickPredictor");
-			cp = new ClickPredictor_Impl();
+			cp = new ClickPredictor();
 		}
 		
 		return cp;
-	}
-
-	/**
-	 * Chooses an arm to play among those proposed in a given batch. This method uses explo.agent.ClickPredictor.choose() and limits its execution time by executing it in a separate thread.
-	 * @param b
-	 * @return
-	 * @throws InterruptedException
-	 * @throws ExecutionException
-	 * @throws TimeoutException
-	 */
-	private static int choose(final Batch b) throws InterruptedException, ExecutionException, TimeoutException {
-		FutureTask<Integer> theTask = null;
-	    // create new task
-	    theTask = new FutureTask<Integer>(new Callable<Integer>() {
-	        public Integer call() {
-	        	return cp.choose(b);
-	        }
-	    });
-	    executor.execute(theTask);
-	    // wait for the execution to finish, timeout given by constant
-	    return theTask.get(TIME_LIMIT, TimeUnit.SECONDS); 
 	}
 
 }

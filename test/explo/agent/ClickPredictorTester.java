@@ -16,7 +16,7 @@ public class ClickPredictorTester {
 
 	@Test
 	public void testSer() throws IOException {
-		ClickPredictor cp = new ClickPredictor_Impl();
+		ClickPredictor cp = new ClickPredictor();
 		Ser.save(cp, filePath );
 	}
 	
