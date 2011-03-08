@@ -7,6 +7,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
@@ -56,6 +57,7 @@ final class Environment {
 		    }
 		};
 		datafiles = dir.list(filter);
+		Arrays.sort(datafiles); // this makes sure that the files are being used in the right order
 		if (datafiles == null) {
 		    // Either dir does not exist or is not a directory
 			datafiles[0] = dirpath; // if it's not a directory, it might be a file

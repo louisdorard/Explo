@@ -29,15 +29,18 @@
 	</target>
 	
 	<target name="algo" depends="init" description="Compile and package the click predictor algorithm into a JAR">
+		<delete file="${lib}/ClickPredictor.jar"/>
 		<javac srcdir="${src}/explo/model" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
-		<javac srcdir="${src}/explo/agent" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
 		<javac srcdir="${src}/explo/util" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
 		<!-- Compile the java code from ${algo} into ${buildAlgo} -->
 		<javac srcdir="${algo}" destdir="${buildAlgo}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
-			<!-- Add explo.model agent and util to the classpath -->
+			<!-- Add explo.model and explo.util to the classpath -->
 			<classpath>
 				<pathelement path="${classpath}"/>
 				<pathelement location="${buildOthers}"/>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
 			</classpath>
 		</javac>
 		<!-- Put everything in ${buildAlgo} into the ClickPredictor.jar file -->
@@ -102,16 +105,15 @@
 		</java>
 	</target>
 	
-	<target name="web" description="Prepare the folder for the web app">
-		<delete dir="bin"/>
+	<target name="clean" description="Clean-up: delete build directories">
 		<delete dir="${build}"/>
-		<delete dir="logs"/>
-		<delete file="cp.ser"/>
 		<delete file="${lib}/ClickPredictor.jar"/>
-	</target>
-	
-	<target name="clean" description="Delete build directories">
-		<delete dir="${build}"/>
+		<!--
+		<delete dir="bin"/>
+		<delete dir="logs"/>
+		<delete dir="doc"/>
+		<delete file="cp.ser"/>
+		-->
 	</target>
 	
 	<target name="all" depends="algo,main,test" description="Compile all and run test"/>
