@@ -11,12 +11,11 @@ public class Zippie {
 
 	/**
 	 * Gunzips given file and returns path where the result has been written to.
-	 * (from http://code.hammerpig.com/how-to-gunzip-files-with-java.html)
+	 * (from Hammerpig, http://code.hammerpig.com/how-to-gunzip-files-with-java.html)
 	 * @param inFilePath - file to be unzipped, assumed to be a .gz archive containing only one element
 	 * @return path to the unzipped content of the archive
 	 * @throws FileNotFoundException
 	 * @throws IOException
-	 * @author Hammerpig
 	 */
 	public static String gunzip(String inFilePath) throws FileNotFoundException, IOException
 	{
@@ -38,7 +37,7 @@ public class Zippie {
 	
 	/**
 	 * Creates zip archive from given directory, and saves it to the enclosing directory
-	 * @param folder - directory to be zipped 
+	 * @param folderPath - path to the directory to be zipped 
 	 * @param zipName - name of the zip archive to be created
 	 * @return a file pointing to the newly created archive
 	 * @throws IOException 

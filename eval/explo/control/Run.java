@@ -41,6 +41,8 @@ final public class Run {
 	private static ExecutorService executor = Executors.newFixedThreadPool(1); // used for running ClickPredictor in another thread with time restriction
 	private static boolean testMode; // indicates whether we run in test mode or not  
     private static Runtime runtime = Runtime.getRuntime(); // getting the runtime reference from system
+	private static double timeSpent; // time spent for the last execution of choosePlayLearn, measured relatively to TIME_LIMIT
+    
 	
 	/**
 	 * Runs the participant's algorithm on the dataset and logs the cumulative reward.
@@ -128,31 +130,29 @@ final public class Run {
 			 * Choose which arm to play in this batch, play and learn
 			 * (measure and log execution time)
 			 */
-			long start = TimeKeeper.getUserTime();
 			if (testMode) {
 				reward = choosePlayLearn(b);
-			}
-			else { // time is limited when not in test mode
+				if (timeSpent>1)
+					log.warn("Batch #" + c + ": time limit exceeded.");
+			} else { // time is limited when not in test mode
 				ClickPredictor cp2 = new ClickPredictor(cp); // saves the current state of the click predictor
 				try {
 					reward = choosePlayLearnTimelimited(b);
 				} catch (TimeoutException ex) {
+					log.warn("Batch #" + c + ": time limit exceeded, now making random choice.");
 					cp = cp2; // this acts as a clean-up of the click predictor, which computations were not finished
 					reward = e.play(b.getRandomArm());
-				    log.warn("Time limit exceeded. Random choice was made for batch #" + c);
+					timeSpent = 1; // the execution was interrupted, hence all the allowed time was used
 				} catch (Exception ex) { // can be either InterruptedException or ExecutionException
 					log.error(ex);
 					break;
 				}
 			}
 			
-			double time = round((double) (TimeKeeper.getUserTime() - start) / TIME_LIMIT);
-			if (time > 1)
-				log.error("The algorithm took too long"); // this error is used by the webapp for tests, but it is also useful as a double check on the computation time when not in test mode
 			
+			System.gc(); // calling the garbage collector is useful for consistent memory usage reporting
 			double memory = round((double) (runtime.totalMemory() - runtime.freeMemory()) / runtime.totalMemory());
-			
-			log.info("Batch #" + c + ": reward=" + reward + " ; " + time*100 + "% of allowed time" + " ; " + memory*100 + "% memory used");
+			log.info("Batch #" + c + ": reward=" + reward + " ; " + timeSpent*100 + "% of allowed time" + " ; " + memory*100 + "% memory used.");
 			
 		}
 	}
@@ -163,12 +163,14 @@ final public class Run {
 	 * @return reward obtained for the chosen arm
 	 */
 	private static Integer choosePlayLearn(Batch b) {
+		long startTime = TimeKeeper.getUserTime();
 		int i = cp.choose(b); // index of chosen arm in b
 		Arm a = b.getArm(i); // corresponding arm
 		Integer reward = e.play(a);
 		cp.learn(a, reward);
 		log.trace("\t Chose entry number " + i + ":");
 		log.trace("\t \t " + a);
+		timeSpent = round((double) (TimeKeeper.getUserTime() - startTime) / TIME_LIMIT); // this has to be done in the same thread as where we set the value for startTime
 		return reward;
 	}
 	
