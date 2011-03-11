@@ -3,8 +3,6 @@ package explo.agent;
 import java.util.HashMap;
 import java.io.Serializable;
 
-import org.apache.log4j.Logger;
-
 import explo.model.Arm;
 import explo.model.Batch;
 
@@ -16,19 +14,19 @@ import explo.model.Batch;
  */
 public class ClickPredictor implements Serializable {
 
-	private static org.apache.log4j.Logger log = Logger.getLogger(ClickPredictor.class);
 	private static final long serialVersionUID = 1L;
 	/**
-	 * This can be used for storing training data.
+	 * This can be used for storing training data. You may change the type of this object depending on your needs.
 	 */
 	private HashMap<Arm,Integer> training;
 	
 	/**
-	 * Default constructor; initialises training to an empty HashMap.
+	 * Default constructor.
 	 */
 	public ClickPredictor() {
-		log.info("Now using CP-Random 1.0 by Louis Dorard.");
+		
 		training = new HashMap<Arm, Integer>();
+		
 	}
 	
 	/**
@@ -36,9 +34,10 @@ public class ClickPredictor implements Serializable {
 	 * @param cp - original click predictor to copy from
 	 */
 	public ClickPredictor(ClickPredictor cp) {
+		
 		training = cp.training;
 		
-		// TODO adapt to the structure of your click predictor
+		// TODO adapt to the structure of your click predictor so that all fields are copied
 		
 	}
 	
@@ -50,17 +49,22 @@ public class ClickPredictor implements Serializable {
 	public void learn(Arm a, Integer reward) {
 		
 		// TODO implement your own code here
+		// Be careful not to use more than half of the total available memory (explo.control.Run needs to keep a copy of your ClickPredictor instance).
+		// You may want to call the garbage collector (System.gc();) for accurate memory usage reporting in the logs, but it might be very expensive if called at each iteration...
 		
 		/*
 		 * Sample code:
 		 * here we don't really "learn" but we just memorise the training examples
 		 */
-		if (Runtime.getRuntime().freeMemory()>2048) { // if we have more than 2K left in memory
-			training.put(a, reward);
-			log.info("Added arm-reward to training set.");
-		} else {
-			log.info("Not enough memory to add to training set.");
+		Runtime runtime = Runtime.getRuntime();
+		long free = runtime.freeMemory();
+		long total = runtime.totalMemory();
+		long used = total - free;
+		training.put(a, reward);
+		if (used > 0.9*total/2) { // making sure we're not using more than 90% of half the total memory: you may want to leave some breathing space for running your computations
+			training.remove(training.keySet().iterator().next());
 		}
+		
 	}
 	
 	/**
@@ -77,6 +81,7 @@ public class ClickPredictor implements Serializable {
 		 * here we choose an index randomly
 		 */
 		return b.getRandomIndex();
+		
 	}
-
+	
 }
