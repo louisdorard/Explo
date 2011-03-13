@@ -150,7 +150,7 @@ final public class Run {
 			}
 			
 			double memory = round((double) (runtime.totalMemory() - runtime.freeMemory()) / runtime.totalMemory());
-			log.info("Batch #" + c + ": reward=" + reward + " ; " + timeSpent*100 + "% of allowed time" + " ; " + memory*100 + "% memory used.");
+			log.info("Batch #" + c + ": " + timeSpent*100 + "% of allowed time" + " ; " + memory*100 + "% memory used.");
 			
 		}
 	}
