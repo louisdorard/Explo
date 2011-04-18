@@ -111,7 +111,6 @@ final public class Run {
 	private static void iterate(int nit) throws IOException, ParseException {
 		
 		Batch b; // batch for current iteration
-		Integer reward; // reward for a
 		int c = 0; // current batch number
 		
 		while (e.hasNext()) {
@@ -131,17 +130,17 @@ final public class Run {
 			 * (measure and log execution time)
 			 */
 			if (testMode) {
-				reward = choosePlayLearn(b);
+				choosePlayLearn(b);
 				if (timeSpent>1)
 					log.warn("Batch #" + c + ": time limit exceeded.");
 			} else { // time is limited when not in test mode
 				ClickPredictor cp2 = new ClickPredictor(cp); // saves the current state of the click predictor
 				try {
-					reward = choosePlayLearnTimelimited(b);
+					choosePlayLearnTimelimited(b);
 				} catch (TimeoutException ex) {
 					log.warn("Batch #" + c + ": time limit exceeded, now making random choice.");
 					cp = cp2; // this acts as a clean-up of the click predictor, which computations were not finished
-					reward = e.play(b.getRandomArm());
+					e.play(b.getRandomArm());
 					timeSpent = 1; // the execution was interrupted, hence all the allowed time was used
 				} catch (Exception ex) { // can be either InterruptedException or ExecutionException
 					log.error(ex);

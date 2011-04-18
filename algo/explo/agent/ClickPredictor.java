@@ -1,8 +1,8 @@
 package explo.agent;
 
-import java.util.HashMap;
 import java.io.Serializable;
 
+import explo.agent.util.CacheMap;
 import explo.model.Arm;
 import explo.model.Batch;
 
@@ -18,15 +18,14 @@ public class ClickPredictor implements Serializable {
 	/**
 	 * This can be used for storing training data. You may change the type of this object depending on your needs.
 	 */
-	private HashMap<Arm,Integer> training;
+	private CacheMap training;
+	private int capacity = 100000;
 	
 	/**
 	 * Default constructor.
 	 */
 	public ClickPredictor() {
-		
-		training = new HashMap<Arm, Integer>();
-		
+		training = new CacheMap(capacity, capacity);
 	}
 	
 	/**
@@ -55,15 +54,9 @@ public class ClickPredictor implements Serializable {
 		/*
 		 * Sample code:
 		 * here we don't really "learn" but we just memorise the training examples
+		 * this will automatically delete the eldest entry when hitting the maximum capacity (see CacheMap class) 
 		 */
-		Runtime runtime = Runtime.getRuntime();
-		long free = runtime.freeMemory();
-		long total = runtime.totalMemory();
-		long used = total - free;
 		training.put(a, reward);
-		if (used > 0.9*total/2) { // making sure we're not using more than 90% of half the total memory: you may want to leave some breathing space for running your computations
-			training.remove(training.keySet().iterator().next());
-		}
 		
 	}
 	

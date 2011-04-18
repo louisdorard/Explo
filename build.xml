@@ -15,7 +15,8 @@
 	<property name="buildAlgo" location="${build}/algo"/>
 	<property name="buildTest" location="${build}/test"/>
 	<property name="data" location="data"/>
-	<property name="mem" value="1536"/>
+	<property name="mem" value="3536"/>
+	<property name="GCtime" value="20"/>
 	
 	<target name="init" description="Create build directories">
 		<!-- Create the time stamp -->
@@ -102,6 +103,7 @@
 			<jvmarg value="-server"/>
 			<jvmarg value="-Xmx${mem}m"/>
 			<jvmarg value="-Xms${mem}m"/>
+			<jvmarg value="-XX:GCTimeLimit=${GCtime}"/>
 		</java>
 	</target>
 	

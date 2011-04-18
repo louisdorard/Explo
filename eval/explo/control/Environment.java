@@ -126,7 +126,7 @@ final class Environment {
 		
 		data.clear(); // purge data: we don't need to remember past data
 		String [] line; // variable to store line taken from CSV file and that contains the next data point
-		while (hasNext() && data.size()<Batch.BATCH_MAX_SIZE) {
+		while (hasNext() && data.size()<Batch.MAX_SIZE) {
 			// We haven't reached the maximum size for the batch yet, and there are data points left.
 			line = nextLine();
 	    	loadLine(line); // load this new line into the data object

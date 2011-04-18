@@ -13,7 +13,7 @@ final public class Batch {
 	/**
 	 * Maximum number of arms in any given batch.
 	 */
-	public static final int BATCH_MAX_SIZE = 6;
+	public static final int MAX_SIZE = 6;
 	
 	private static Random rgen = new Random(); // random generator used to select arms at random in a batch
 	
