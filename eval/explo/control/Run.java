@@ -59,6 +59,7 @@ final public class Run {
 		else
 			testMode = false;
 		
+		log.info("Version 1.1");
 		log.info("Phase number: " + 1);
 		
 		try {
@@ -140,7 +141,11 @@ final public class Run {
 				} catch (TimeoutException ex) {
 					log.warn("Batch #" + c + ": time limit exceeded, now making random choice.");
 					cp = cp2; // this acts as a clean-up of the click predictor, which computations were not finished
-					e.play(b.getRandomArm());
+					
+					// the computations were interrupted either before the call to e.play in choosePlayLearn, or after
+					if (e.getNplays()<c) // before... 
+						e.play(b.getRandomArm());
+					
 					timeSpent = 1; // the execution was interrupted, hence all the allowed time was used
 				} catch (Exception ex) { // can be either InterruptedException or ExecutionException
 					log.error(ex);
